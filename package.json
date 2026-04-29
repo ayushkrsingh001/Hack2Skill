@@ -1,0 +1,13 @@
+{
+  "name": "election-assistant",
+  "version": "1.0.0",
+  "description": "Interactive Election Assistant for India",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  }
+}
