@@ -4,6 +4,7 @@
  * @module services/gemini
  */
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { getCache, setCache } = require('../utils/cache');
 
 /** @type {import('@google/generative-ai').GenerativeModel|null} */
 let model = null;
@@ -61,11 +62,6 @@ function getModel() {
  *
  * @param {string} message - User's message.
  * @param {object} [userContext={}] - User profile for personalized responses.
- * @param {string} [userContext.name] - User's name.
- * @param {number} [userContext.age] - User's age.
- * @param {string} [userContext.state] - User's state/UT.
- * @param {boolean} [userContext.firstTimeVoter] - Whether first-time voter.
- * @param {string} [userContext.language] - Preferred language (en/hi).
  * @returns {Promise<{reply: string, source: string}>} AI response with source indicator.
  */
 async function generateResponse(message, userContext = {}) {
@@ -76,6 +72,12 @@ async function generateResponse(message, userContext = {}) {
       reply: getFallbackResponse(message),
       source: 'fallback'
     };
+  }
+
+  const cacheKey = `gemini:${JSON.stringify(userContext)}:${message}`;
+  const cachedResponse = getCache(cacheKey);
+  if (cachedResponse) {
+    return { reply: cachedResponse, source: 'gemini (cached)' };
   }
 
   try {
@@ -96,9 +98,12 @@ async function generateResponse(message, userContext = {}) {
     const result = await geminiModel.generateContent(fullPrompt);
     const response = result.response;
     const text = response.text();
+    const reply = text || getFallbackResponse(message);
+
+    setCache(cacheKey, reply, 3600); // Cache for 1 hour
 
     return {
-      reply: text || getFallbackResponse(message),
+      reply,
       source: 'gemini'
     };
   } catch (_e) {

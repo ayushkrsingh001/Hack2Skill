@@ -4,6 +4,8 @@
  * @module services/guidance
  */
 
+const { getCache, setCache } = require('../utils/cache');
+
 /**
  * Generate personalized guidance based on user profile.
  * @param {object} profile - User profile data.
@@ -14,6 +16,10 @@
  * @returns {object} Personalized guidance with eligibility, steps, and tips.
  */
 function getPersonalizedGuidance(profile = {}) {
+  const cacheKey = `guidance:${JSON.stringify(profile)}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
   const { age, state, firstTimeVoter, registered } = profile;
   const guidance = {
     eligible: true,
@@ -36,6 +42,7 @@ function getPersonalizedGuidance(profile = {}) {
       'Start learning about the election process now',
       'Gather your documents (Aadhaar, birth certificate) in advance'
     ];
+    setCache(cacheKey, guidance, 86400); // 24h cache
     return guidance;
   }
 
@@ -90,6 +97,7 @@ function getPersonalizedGuidance(profile = {}) {
     );
   }
 
+  setCache(cacheKey, guidance, 86400); // 24h cache
   return guidance;
 }
 

@@ -10,9 +10,13 @@ const questions = require('../data/quizQuestions');
  * @returns {object[]} Array of shuffled quiz question objects.
  */
 function getShuffledQuestions(count = 10) {
-  return [...questions]
-    .sort(() => Math.random() - 0.5)
-    .slice(0, count);
+  // O(n) Fisher-Yates shuffle (more efficient and truly random than Array.sort)
+  const array = [...questions];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array.slice(0, count);
 }
 
 /**

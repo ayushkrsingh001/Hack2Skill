@@ -1,0 +1,9 @@
+perf: Optimize backend efficiency and caching
+
+- Add lightweight in-memory cache utility with TTL support
+- Cache Gemini API responses to eliminate redundant network calls
+- Optimize polling distance algorithm by removing redundant Math.sqrt calls
+- Cache polling search and nearest booth queries
+- Replace Array.sort shuffle with O(n) Fisher-Yates algorithm in quiz service
+- Add unit tests for cache utility (186 total tests, all passing)
+- Maintain clean architecture and strict security standards
