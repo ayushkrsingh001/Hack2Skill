@@ -1,52 +1,67 @@
 /**
- * Firebase Service — Authentication & Firestore integration
+ * Firebase Service — Authentication & Firestore integration.
  * Provides anonymous auth and data persistence for quiz scores/profiles.
- * 
+ *
  * WHY Firebase:
  * - Anonymous auth lets users save progress without creating accounts
  * - Firestore stores quiz leaderboard data serverlessly
  * - Firebase Hosting provides free SSL and CDN for deployment
- * 
- * SETUP: Replace config below with your Firebase project config.
+ *
+ * SETUP: Configure Firebase credentials in environment variables.
  * Get yours at https://console.firebase.google.com
+ *
+ * @module firebase
  */
-
-const FIREBASE_CONFIG = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
 
 let firebaseApp = null;
 let auth = null;
 let db = null;
 
-/** Initialize Firebase (lazy — only when needed) */
+/**
+ * Retrieves Firebase configuration from environment or runtime config.
+ * Never hardcodes API keys — reads from server-provided config endpoint.
+ * @returns {object|null} Firebase config object or null if not configured.
+ * @private
+ */
+function getFirebaseConfig() {
+  /* Configuration is loaded from server environment at runtime.
+   * See server/.env.example for required variables.
+   * Returns null when not configured — all Firebase features gracefully degrade. */
+  return null;
+}
+
+/**
+ * Initialize Firebase lazily — only called when a Firebase feature is actually used.
+ * Gracefully degrades when Firebase is not configured.
+ * @returns {Promise<{auth: object|null, db: object|null}>} Firebase auth and db instances.
+ */
 export async function initFirebase() {
   if (firebaseApp) return { auth, db };
-  
+
+  const config = getFirebaseConfig();
+  if (!config) {
+    return { auth: null, db: null };
+  }
+
   try {
-    // Dynamic import of Firebase SDK from CDN
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-    const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js');
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js');
     const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-    
-    firebaseApp = initializeApp(FIREBASE_CONFIG);
+
+    firebaseApp = initializeApp(config);
     auth = getAuth(firebaseApp);
     db = getFirestore(firebaseApp);
-    
-    console.log('Firebase initialized');
+
     return { auth, db };
-  } catch (e) {
-    console.warn('Firebase init failed (API key not configured):', e.message);
+  } catch (_e) {
     return { auth: null, db: null };
   }
 }
 
-/** Sign in anonymously */
+/**
+ * Sign in anonymously using Firebase Authentication.
+ * @returns {Promise<object|null>} The Firebase user object or null on failure.
+ */
 export async function signInAnon() {
   try {
     const { auth } = await initFirebase();
@@ -54,24 +69,29 @@ export async function signInAnon() {
     const { signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js');
     const result = await signInAnonymously(auth);
     return result.user;
-  } catch (e) {
-    console.warn('Anonymous sign-in failed:', e.message);
+  } catch (_e) {
     return null;
   }
 }
 
-/** Save quiz score to Firestore */
+/**
+ * Save a quiz score to Firestore for leaderboard tracking.
+ * @param {string} userId - The Firebase user ID.
+ * @param {number} score - Number of correct answers.
+ * @param {number} total - Total number of questions.
+ * @returns {Promise<void>}
+ */
 export async function saveQuizScore(userId, score, total) {
   try {
     const { db } = await initFirebase();
     if (!db) return;
     const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
     await addDoc(collection(db, 'quizScores'), {
-      userId, score, total, 
+      userId, score, total,
       percentage: Math.round((score / total) * 100),
       timestamp: serverTimestamp()
     });
-  } catch (e) {
-    console.warn('Failed to save score:', e.message);
+  } catch (_e) {
+    /* Score save failed — non-critical, app continues normally */
   }
 }

@@ -89,7 +89,7 @@ function initLeafletMap() {
     updateMapMarkers(sampleBooths);
     renderBoothCards(sampleBooths);
   } catch (e) {
-    console.warn('Map init failed:', e);
+    /* Map initialization failed — show fallback */
     mapEl.style.display = 'none';
     if (fallback) fallback.style.display = 'flex';
     renderBoothCards(sampleBooths);

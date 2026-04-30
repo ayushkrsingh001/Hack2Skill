@@ -5,8 +5,8 @@
   --bg3: #1a2235;
   --bgc: rgba(26, 34, 53, .7);
   --t1: #f1f5f9;
-  --t2: #94a3b8;
-  --tm: #64748b;
+  --t2: #a1b0c8;
+  --tm: #8899b3;
   --saffron: #FF9933;
   --green: #138808;
   --blue: #4F46E5;
@@ -15,7 +15,8 @@
   --border: rgba(148, 163, 184, .1);
   --radius: 12px;
   --tr: .3s cubic-bezier(.4, 0, .2, 1);
-  --nav-h: 60px
+  --nav-h: 60px;
+  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.5)
 }
 
 .light-theme {
@@ -25,7 +26,7 @@
   --bgc: rgba(255, 255, 255, .8);
   --t1: #1e293b;
   --t2: #475569;
-  --tm: #94a3b8;
+  --tm: #596d89;
   --border: rgba(0, 0, 0, .08)
 }
 
@@ -49,6 +50,33 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased
+}
+
+/* ===== Focus Visible (Accessibility) ===== */
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring)
+}
+
+:focus:not(:focus-visible) {
+  outline: none
+}
+
+/* ===== Reduced Motion (Accessibility) ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important
+  }
+
+  .particle {
+    display: none
+  }
 }
 
 a {

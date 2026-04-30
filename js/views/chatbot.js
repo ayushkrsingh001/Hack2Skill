@@ -377,7 +377,7 @@ export function mount() {
     };
 
     recognition.onerror = (event) => {
-      console.warn('Speech error:', event.error);
+      /* Speech recognition error — handled silently */
       isRecording = false;
       voiceBtn.classList.remove('recording');
       input.placeholder = 'Type your message...';
