@@ -3,7 +3,7 @@
  * Uses supertest to make HTTP requests against the Express app.
  */
 const request = require('supertest');
-const app = require('../server/server');
+const app = require('../server/app');
 
 describe('GET /api/health', () => {
   test('returns 200 with status ok', async () => {
@@ -172,5 +172,106 @@ describe('Input Sanitization Middleware', () => {
       .send('"just a string"');
     // Should not crash
     expect(res.status).toBeDefined();
+  });
+});
+
+describe('POST /api/health/guidance', () => {
+  test('returns personalized guidance for 18+ user', async () => {
+    const res = await request(app)
+      .post('/api/health/guidance')
+      .send({ age: 21, state: 'Delhi', firstTimeVoter: 'yes' });
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(true);
+    expect(res.body.steps.length).toBeGreaterThan(0);
+    expect(res.body.tips.length).toBeGreaterThan(0);
+  });
+
+  test('returns ineligible for under-18 user', async () => {
+    const res = await request(app)
+      .post('/api/health/guidance')
+      .send({ age: 16 });
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(false);
+  });
+
+  test('handles empty body', async () => {
+    const res = await request(app)
+      .post('/api/health/guidance')
+      .send({});
+    expect(res.status).toBe(200);
+    expect(res.body.eligible).toBe(true);
+  });
+});
+
+describe('GET /api/polling/nearby', () => {
+  test('returns nearest booths for valid coordinates', async () => {
+    const res = await request(app).get('/api/polling/nearby?lat=28.6139&lng=77.2090');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.booths)).toBe(true);
+    expect(res.body.booths.length).toBeLessThanOrEqual(5);
+    expect(res.body.booths[0]).toHaveProperty('distance');
+  });
+
+  test('returns 400 for missing coordinates', async () => {
+    const res = await request(app).get('/api/polling/nearby');
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('lat');
+  });
+
+  test('returns 400 for invalid coordinates', async () => {
+    const res = await request(app).get('/api/polling/nearby?lat=abc&lng=def');
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/quiz/validate', () => {
+  test('validates correct answer', async () => {
+    const res = await request(app)
+      .post('/api/quiz/validate')
+      .send({ questionIndex: 0, answerIndex: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('correct');
+    expect(res.body).toHaveProperty('correctAnswer');
+  });
+
+  test('returns 400 for missing fields', async () => {
+    const res = await request(app)
+      .post('/api/quiz/validate')
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  test('handles out-of-range index', async () => {
+    const res = await request(app)
+      .post('/api/quiz/validate')
+      .send({ questionIndex: 9999, answerIndex: 0 });
+    expect(res.status).toBe(200);
+    expect(res.body.correct).toBe(false);
+  });
+});
+
+describe('POST /api/chat with userContext', () => {
+  test('accepts userContext in chat request', async () => {
+    const res = await request(app).post('/api/chat').send({
+      message: 'How to register?',
+      userContext: {
+        name: 'Priya',
+        age: 21,
+        state: 'Delhi',
+        firstTimeVoter: true,
+        language: 'en'
+      }
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toBeDefined();
+    expect(res.body.source).toBeDefined();
+  });
+
+  test('works without userContext', async () => {
+    const res = await request(app).post('/api/chat').send({
+      message: 'Hello'
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.reply).toBeDefined();
   });
 });

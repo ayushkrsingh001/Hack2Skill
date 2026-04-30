@@ -210,7 +210,7 @@ export function render() {
     <div class="chat-container">
       <div class="chat-header-bar">
         <div class="chat-avatar-indicator"><div class="avatar-dot"></div>🤖</div>
-        <div><strong>Election Assistant</strong><br><small class="text-muted">Online — Ready to help</small></div>
+        <div><strong>VoteSathi AI</strong><br><small class="text-muted">Powered by Gemini — Ready to help</small></div>
       </div>
       <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages"></div>
       <div class="chat-chips" id="chatChips">
@@ -333,23 +333,57 @@ export function mount() {
   // Welcome message
   const lang = getState().language || 'en';
   const welcomeText = lang === 'hi' ?
-    `<h3>नमस्ते! 🙏</h3><p>मैं आपका <strong>चुनाव सहायक</strong> हूँ। भारत में चुनाव के बारे में कुछ भी पूछें!</p><p>नीचे दिए गए त्वरित विषयों में से किसी एक पर क्लिक करें, या अपना प्रश्न टाइप करें।</p>` :
-    `<h3>Namaste! 🙏</h3><p>I'm your <strong>Election Assistant</strong>. Ask me anything about elections in India!</p><p>Try clicking one of the quick topics below, or type your question.</p>`;
+    `<h3>नमस्ते! 🙏</h3><p>मैं <strong>VoteSathi</strong> हूँ — आपका AI चुनाव सहायक। Gemini AI द्वारा संचालित।</p><p>भारत में चुनाव के बारे में कुछ भी पूछें!</p>` :
+    `<h3>Namaste! 🙏</h3><p>I'm <strong>VoteSathi</strong> — your AI Election Assistant powered by Gemini.</p><p>Ask me anything about elections in India, or try the quick topics below.</p>`;
 
   addMessage(container, 'bot', welcomeText);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = sanitizeInput(input.value);
     if (!text) return;
     addMessage(container, 'user', text);
     input.value = ''; input.style.height = 'auto'; sendBtn.disabled = true;
     showTyping(container);
-    setTimeout(() => {
+
+    try {
+      const user = getState().user || {};
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          userContext: {
+            name: user.name || '',
+            age: user.age || null,
+            state: user.state || '',
+            firstTimeVoter: user.firstTime === 'yes',
+            language: getState().language || 'en'
+          }
+        })
+      });
+
       document.getElementById('typing-indicator')?.remove();
-      const botRespHTML = generateResponse(text);
-      addMessage(container, 'bot', botRespHTML);
-      speak(botRespHTML);
-    }, 600 + Math.random() * 400);
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.reply || generateResponse(text);
+        // Convert markdown bold to HTML for Gemini responses
+        const formatted = data.source === 'gemini'
+          ? reply.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>')
+          : reply;
+        addMessage(container, 'bot', formatted);
+        speak(formatted);
+      } else {
+        const fallback = generateResponse(text);
+        addMessage(container, 'bot', fallback);
+        speak(fallback);
+      }
+    } catch (_e) {
+      document.getElementById('typing-indicator')?.remove();
+      const fallback = generateResponse(text);
+      addMessage(container, 'bot', fallback);
+      speak(fallback);
+    }
   };
 
   // Setup Voice Recognition

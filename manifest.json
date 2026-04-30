@@ -1,7 +1,7 @@
 {
-  "name": "Election Assistant India",
-  "short_name": "Election Assist",
-  "description": "Interactive voting guide for Indian citizens.",
+  "name": "VoteSathi — Smart Election Assistant",
+  "short_name": "VoteSathi",
+  "description": "AI-powered smart election assistant for Indian citizens, powered by Gemini.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f8fafc",
